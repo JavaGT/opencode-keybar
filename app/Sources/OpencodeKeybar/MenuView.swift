@@ -71,6 +71,9 @@ struct MenuView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(p.label).font(.subheadline).fontWeight(.semibold)
+                if let bal = inlineBalance(for: p.provider) {
+                    Text(bal).font(.caption2).foregroundStyle(.secondary)
+                }
                 Spacer()
                 if let active = p.profiles.first(where: { $0.active }) {
                     Text(active.name).foregroundStyle(.green).font(.caption)
@@ -171,5 +174,18 @@ struct MenuView: View {
     private func loadCredits(_ provider: String) async {
         showCredits = provider
         creditsResult = await store.loadCredits(provider)
+    }
+
+    /// Most recent remaining dollar balance for a provider, for inline display.
+    private func inlineBalance(for provider: String) -> String? {
+        guard let c = store.creditsCache[provider], c.error == nil else { return nil }
+        if let pioneer = c.pioneer {
+            return String(format: "$%.2f left", pioneer.remaining_usd)
+        } else if let zen = c.zen, let z = zen.zenCost {
+            return String(format: "$%.2f zen", z)
+        } else if let go = c.go, let r = go.rolling {
+            return String(format: "%.0f%% 5h", r.usagePercent)
+        }
+        return nil
     }
 }

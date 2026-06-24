@@ -59,10 +59,24 @@ final class KeyStore: ObservableObject {
             let result = try await client.status()
             providers = result
             lastUpdated = Date()
+            // Refresh cached credits so the inline balance stays current.
+            await refreshCredits(for: result)
         } catch {
             self.error = error.localizedDescription
         }
         loading = false
+    }
+
+    private func refreshCredits(for providers: [ProviderStatus]) async {
+        guard !providers.isEmpty else { return }
+        await withTaskGroup(of: (String, CreditsResponse?).self) { group in
+            for p in providers where p.hasKey {
+                group.addTask { (p.provider, await self.loadCredits(p.provider)) }
+            }
+            for await (provider, resp) in group {
+                if let resp { creditsCache[provider] = resp }
+            }
+        }
     }
 
     func switchProfile(_ provider: String, _ name: String) async -> Bool {
