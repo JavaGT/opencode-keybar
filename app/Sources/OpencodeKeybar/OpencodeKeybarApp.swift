@@ -19,7 +19,10 @@ struct OpencodeKeybarApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuView(store: store, settingsBox: settingsBox, openSettingsAction: { openSettings() })
+            MenuView(store: store, settingsBox: settingsBox, openSettingsAction: {
+                NSApp.activate(ignoringOtherApps: true)
+                openSettings()
+            })
         } label: {
             Label("opencode keys", systemImage: store.providers.contains { $0.hasKey } ? "key.fill" : "key.slash")
         }
