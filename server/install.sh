@@ -8,6 +8,23 @@ LABEL="nz.ac.javagrant.opencode-keybar.daemon"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 PORT="${OPENCODE_KEYBAR_PORT:-47788}"
 
+# Resolve node — launchd does not inherit the shell PATH, so we must use
+# an absolute path. Prefer $OPENCODE_KEYBAR_NODE, then `command -v node`,
+# then common homebrew locations.
+NODE_BIN="${OPENCODE_KEYBAR_NODE:-}"
+if [ -z "$NODE_BIN" ]; then
+  NODE_BIN="$(command -v node 2>/dev/null || true)"
+fi
+if [ -z "$NODE_BIN" ] || [ ! -x "$NODE_BIN" ]; then
+  for cand in /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node; do
+    [ -x "$cand" ] && NODE_BIN="$cand" && break
+  done
+fi
+if [ -z "$NODE_BIN" ] || [ ! -x "$NODE_BIN" ]; then
+  echo "ERROR: node not found. Set OPENCODE_KEYBAR_NODE to its absolute path." >&2
+  exit 1
+fi
+
 # Optional shared-secret token. Set OPENCODE_KEYBAR_TOKEN before running to
 # require a Bearer token from the client. Leave empty to skip auth (the daemon
 # binds to 127.0.0.1 only, reachable solely via SSH tunnel).
@@ -21,8 +38,7 @@ cat > "$PLIST" <<PLIST
   <key>Label</key><string>${LABEL}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/env</string>
-    <string>node</string>
+    <string>${NODE_BIN}</string>
     <string>${DIR}/daemon.mjs</string>
   </array>
   <key>WorkingDirectory</key><string>${DIR}</string>
