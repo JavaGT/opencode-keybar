@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Installs the opencode-keybar daemon as a macOS launchd user agent.
+# Run on the SERVER (where the opencode config lives).
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LABEL="nz.ac.javagrant.opencode-keybar.daemon"
+PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
+PORT="${OPENCODE_KEYBAR_PORT:-47788}"
+
+# Optional shared-secret token. Set OPENCODE_KEYBAR_TOKEN before running to
+# require a Bearer token from the client. Leave empty to skip auth (the daemon
+# binds to 127.0.0.1 only, reachable solely via SSH tunnel).
+TOKEN="${OPENCODE_KEYBAR_TOKEN:-}"
+
+cat > "$PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>${LABEL}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>node</string>
+    <string>${DIR}/daemon.mjs</string>
+  </array>
+  <key>WorkingDirectory</key><string>${DIR}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>OPENCODE_KEYBAR_PORT</key><string>${PORT}</string>
+    <key>OPENCODE_KEYBAR_HOST</key><string>127.0.0.1</string>
+    <key>OPENCODE_KEYBAR_TOKEN</key><string>${TOKEN}</string>
+    <key>HOME</key><string>${HOME}</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>${HOME}/.config/opencode-keybar/daemon.log</string>
+  <key>StandardErrorPath</key><string>${HOME}/.config/opencode-keybar/daemon.log</string>
+</dict>
+</plist>
+PLIST
+
+mkdir -p "$HOME/.config/opencode-keybar"
+launchctl unload "$PLIST" 2>/dev/null || true
+launchctl load "$PLIST"
+echo "Installed ${LABEL}."
+echo "  Port:   ${PORT} (127.0.0.1 only)"
+echo "  Auth:   ${TOKEN:+bearer token} ${TOKEN:-none}"
+echo "  Log:    ~/.config/opencode-keybar/daemon.log"
+echo "  Stop:   launchctl unload \"$PLIST\""

@@ -1,0 +1,14 @@
+# Swift build output
+app/.build/
+app/dist/
+
+# macOS
+.DS_Store
+*.swp
+
+# Node
+node_modules/
+
+# local secrets / runtime
+*.log
+.opencode/
