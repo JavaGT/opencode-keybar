@@ -6,7 +6,7 @@ struct AppSettings: Codable, Equatable {
     var sshPort: Int = 22
     var sshIdentityFile: String = ""  // optional path to private key
     var remotePort: Int = 47788       // daemon port on the server
-    var localPort: Int = 47788        // local forwarded port
+    var localPort: Int = 47789        // local forwarded port (must not collide with a local daemon)
     var authToken: String = ""        // optional Bearer token
     var autoRefreshSeconds: Int = 30  // 0 = manual only
     var showAllProviders: Bool = false // hide providers with no key/profiles
